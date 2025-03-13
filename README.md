@@ -1,5 +1,5 @@
 # 待解决问题
-1. token和user_ID以及file_name未隐藏，其他用户可以直接复制token来窃取用户的信息并登录（要求修改时使用cookie）
+1. token和user_ID以及file_name未隐藏，其他用户可以直接复制token来窃取用户的信息并登录（要求修改时使用cookie，且使用httponly）
 
 2. AI对话没有继续之前对话的功能
 
