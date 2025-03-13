@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 对话</title>
+    <!-- 引入 Open Sans 字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        /* 重置样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #000000);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .chat-container {
+            background: #fff;
+            width: 90%;
+            max-width: 800px;
+            border-radius: 12px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #D4AF37;
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, #000000, #434343);
+            color: #D4AF37;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-buttons button {
+            background: transparent;
+            border: 1px solid #D4AF37;
+            color: #D4AF37;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .nav-buttons button:hover {
+            background: #D4AF37;
+            color: #000;
+            transform: scale(1.05);
+        }
+
+        .nav-buttons button.active {
+            background: #D4AF37;
+            color: #000;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        .chat-input {
+            display: flex;
+            border-top: 1px solid #ddd;
+            background: #fafafa;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            font-size: 16px;
+            outline: none;
+            background: #fff;
+            border-radius: 0 0 0 12px;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-input button {
+            background: #D4AF37;
+            color: #000;
+            border: none;
+            padding: 0 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 0 0 12px 0;
+            outline: none;
+        }
+
+        .chat-input button:hover {
+            background: #c99c32;
+            transform: scale(1.05);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.user {
+            align-items: flex-end;
+        }
+
+        .message.ai {
+            align-items: flex-start;
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 15px 20px;
+            font-size: 16px;
+            line-height: 1.5;
+            word-break: break-word;
+            position: relative;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 用户消息：浅金色 */
+        .message.user .bubble {
+            background: #F7E7CE;
+            color: #333;
+            border: 1px solid #D4AF37;
+        }
+
+        .message.user .bubble::after {
+            content: "";
+            position: absolute;
+            right: -8px;
+            bottom: 8px;
+            border-width: 8px 0 8px 8px;
+            border-style: solid;
+            border-color: transparent transparent transparent #F7E7CE;
+        }
+
+        /* AI 消息：白色 */
+        .message.ai .bubble {
+            background: #fff;
+            color: #333;
+            border: 1px solid #D4AF37;
+        }
+
+        .message.ai .bubble::before {
+            content: "";
+            position: absolute;
+            left: -8px;
+            bottom: 8px;
+            border-width: 8px 8px 8px 0;
+            border-style: solid;
+            border-color: transparent #fff transparent transparent;
+        }
+
+        /* 自定义滚动条 */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* 代码块样式 */
+        pre {
+            background: #f4f4f4;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        code {
+            font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+            font-size: 0.9em;
+        }
+    </style>
+    <!-- 引入 marked 库 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- 引入 highlight.js 库 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-light.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>AI 对话</h1>
+            <div class="nav-buttons">
+                <button id="btn-ai" class="active">AI对话</button>
+                <button id="btn-file">文件管理</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- 聊天记录展示区 -->
+        </div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="请输入你的消息...">
+            <button id="send-btn">发送</button>
+        </div>
+    </div>
+
+    <script>
+        // 后端通过模板返回的 user_id 注入到这里
+        const userId = "{{ user_id }}";
+        let sessionId = "";
+        console.log('User ID:', userId);
+
+        // 获取 URL 参数中的 token
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("token");
+
+        const chatMessages = document.getElementById('chat-messages');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const btnAI = document.getElementById('btn-ai');
+        const btnFile = document.getElementById('btn-file');
+
+        // 按钮事件：切换页面（请根据实际路由修改）
+        btnAI.addEventListener('click', () => {
+            window.location.href = `/template/AI_chat/text?token=${token}`;
+        });
+        btnFile.addEventListener('click', () => {
+            window.location.href = `/template/file_manager?token=${token}`;
+        });
+
+        // 添加消息到对话窗口
+        function appendMessage(role, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', role);
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            // 将 Markdown 文本转换为 HTML
+            const html = marked.parse(text);
+            bubble.innerHTML = html;
+            messageDiv.appendChild(bubble);
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            // 为代码块添加语法高亮
+            bubble.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            return bubble;
+        }
+
+        // 调用 FastAPI 接口，处理流式响应
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 显示用户消息
+            appendMessage('user', message);
+            userInput.value = '';
+
+            // 创建 AI 回复占位气泡
+            const assistantBubble = appendMessage('ai', '');
+
+            // 构造请求 payload
+            const payload = {
+                user_id: userId,
+                session_id: sessionId,
+                message: message
+            };
+
+            try {
+                const response = await fetch('/AI/chat/text', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error('网络请求出错');
+                }
+
+                // 检查响应头中是否包含新的 session_id
+                const newSessionId = response.headers.get('X-Session-ID');
+                if (newSessionId) {
+                    sessionId = newSessionId;
+                }
+
+                // 流式处理返回数据
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let done = false;
+                let fullText = '';
+
+                while (!done) {
+                    const { value, done: doneReading } = await reader.read();
+                    done = doneReading;
+                    if (value) {
+                        const chunk = decoder.decode(value);
+                        fullText += chunk;
+                        const html = marked.parse(fullText);
+                        assistantBubble.innerHTML = html;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                        // 为代码块添加语法高亮
+                        assistantBubble.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(block);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                assistantBubble.textContent = '发生错误，请稍后再试。';
+            }
+        }
+
+        // 绑定事件
+        sendBtn.addEventListener('click', sendMessage);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+
+</html>

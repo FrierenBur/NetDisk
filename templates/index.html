@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册与登录</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            margin: 0;
+        }
+        .container {
+            width: 350px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+        h2 {
+            color: #333;
+        }
+        .input-group {
+            margin: 10px 0;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-weight: bold;
+        }
+        .input-group input {
+            width: calc(100% - 20px);
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background: #6a11cb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: #2575fc;
+        }
+        .switch {
+            margin-top: 15px;
+            color: #555;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="form-container">
+        <h2 id="form-title">注册</h2>
+        <div class="input-group">
+            <label>手机号:</label>
+            <input type="text" id="phone" placeholder="请输入手机号">
+        </div>
+        <div class="input-group" id="password-group">
+            <label>密码:</label>
+            <input type="password" id="password" placeholder="请输入密码">
+        </div>
+        <div class="input-group" id="code-group" style="display: none;">
+            <label>验证码:</label>
+            <input type="text" id="verification-code" placeholder="请输入验证码">
+        </div>
+        <button class="btn" id="action-btn">注册</button>
+        <div class="switch" id="toggle-form">切换到登录</div>
+    </div>
+    
+    <script>
+            // 获取 Cookie
+            function getCookie(name) {
+                const cookies = document.cookie.split("; ");
+                for (let cookie of cookies) {
+                    const [key, value] = cookie.split("=");
+                    if (key === name) {
+                        return value;
+                    }
+                }
+                return null;
+            }
+
+        let isRegister = true;
+        document.getElementById("toggle-form").addEventListener("click", function () {
+            isRegister = !isRegister;
+            document.getElementById("form-title").innerText = isRegister ? "注册" : "登录";
+            document.getElementById("action-btn").innerText = isRegister ? "注册" : "登录";
+            document.getElementById("toggle-form").innerText = isRegister ? "切换到登录" : "切换到注册";
+        });
+
+        document.getElementById("action-btn").addEventListener("click", function () {
+            const phone = document.getElementById("phone").value;
+            const password = document.getElementById("password").value;
+            
+            if (!phone || !password) {
+                alert("请输入手机号和密码！");
+                return;
+            }
+        
+            const url = isRegister ? "/user/register/password-way" : "/user/login/password-way"; // 选择 API
+            const data = { phone, password };
+        
+            fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
+                credentials: "include" // 确保 Cookie 被正确发送（如果后端使用 cookie 方案）
+            })
+            .then(response => {
+                if (response.redirected) {
+                    // 直接跳转到重定向 URL（保留 token）
+                    window.location.href = response.url;
+                } else {
+                    return response.json();  // 解析 JSON
+                }
+            })
+            .then(result => {
+                if (result && !result.success) {
+                    alert(result.message || "操作失败，请重试！");
+                }
+            })
+            .catch(error => {
+                console.error("请求错误:", error);
+                alert("网络错误，请稍后再试！");
+            });
+        });
+        
+        
+        
+    </script>
+</body>
+</html>

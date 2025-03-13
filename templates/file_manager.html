@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            max-width: 500px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        /* 新增导航按钮样式 */
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .nav-buttons button {
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #007BFF;
+            color: white;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .nav-buttons button:hover {
+            background: #0056b3;
+        }
+        .nav-buttons button.active {
+            background: #0056b3;
+        }
+        button {
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            background: #f9f9f9;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .actions button {
+            margin-left: 5px;
+            background: #28a745;
+        }
+        .actions button.delete {
+            background: #dc3545;
+        }
+        /* 样式添加：返回按钮 */
+        .back-button {
+            margin-bottom: 20px;  /* 设置按钮与文件列表的间距 */
+            background: #17a2b8;
+            color: white;
+        }
+        .back-button:hover {
+            background: #138496;
+        }
+    </style>
+    <script>
+        let userId = "";
+        // 获取 URL 参数中的 token
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("token");
+
+        async function fetchUserId() {
+            const response = await fetch(`/user/profile?token=${token}`);
+            const data = await response.json();
+            userId = data.data.user_id;
+            if (!userId) {
+                console.error("用户 ID 获取失败");
+                return;
+            }           
+            loadFiles();
+        }
+        
+        async function downloadFile(fileName) {
+            window.location.href = `/file/download/file/${fileName}?user_id=${userId}`;
+        }
+        
+        async function deleteFile(fileName) {
+            const response = await fetch(`/file/delete/file/${fileName}?user_id=${userId}`, { method: 'DELETE' });
+            const result = await response.json();
+            alert(result.提示);
+            loadFiles();
+        }
+        
+        async function renameFile(oldName) {
+            const newName = prompt("请输入新的文件名:");
+            if (!newName) return;
+            
+            const response = await fetch(`/file/rename/file/${oldName}?user_id=${userId}&new_file_name=${newName}`, { method: 'PATCH' });
+            const result = await response.json();
+            alert(result.提示);
+            loadFiles();
+        }
+        
+        async function loadFiles() {
+            const fileListContainer = document.getElementById("fileList");  
+        
+            try {
+                const response = await fetch(`/file/search/file_all/${userId}`);
+                
+                if (!response.ok) {
+                    throw new Error("用户目录不存在");
+                }
+        
+                const data = await response.json();  
+                console.log(data);
+                
+                if (data.length > 0) {
+                    fileListContainer.innerHTML = ""; 
+                    data.forEach(file => {
+                        const fileElement = document.createElement("li"); 
+                        fileElement.className = "file-item";
+                        fileElement.innerHTML = `
+                            <span>${file.filename} (${file.size} KB)</span>
+                            <div class="actions">
+                                <button onclick="downloadFile('${file.filename}')">下载</button>
+                                <button class="delete" onclick="deleteFile('${file.filename}')">删除</button>
+                                <button onclick="renameFile('${file.filename}')">重命名</button>
+                                ${isVideo(file.filename) ? `<button class="play" onclick="playVideo('${file.filename}')">播放</button>` : ""}
+                            </div>
+                        `;
+                        fileListContainer.appendChild(fileElement);
+                    });
+                } else {
+                    fileListContainer.innerHTML = "<p>没有文件</p>"; 
+                }
+            } catch (error) {
+                console.error("加载文件失败:", error);
+                fileListContainer.innerHTML = `<p>加载文件出错: ${error.message}</p>`; 
+            }
+        }
+        
+        // 判断是否是视频文件
+        function isVideo(filename) {
+            return /\.(mp4|avi|mov|wmv|flv|webm)$/i.test(filename);
+        }
+        
+        // 播放视频
+        function playVideo(filename) {
+            window.location.href = `/template/video_player?filename=${filename}&token=${token}`;
+        }
+        
+        
+        window.onload = function() {
+            fetchUserId();
+            // 添加切换按钮事件
+            const btnAI = document.getElementById("btn-ai");
+            const btnFile = document.getElementById("btn-file");
+
+            btnAI.addEventListener('click', () => {
+                window.location.href = `/template/AI_chat/text?token=${token}`;
+            });
+            btnFile.addEventListener('click', () => {
+                window.location.href = `/template/file_manager?token=${token}`;
+            });
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <!-- 返回按钮 -->
+        <button class="back-button" onclick="window.location.href=`/template/file?token=${token}`">返回文件上传</button>
+        
+        <!-- 切换按钮 -->
+        <div class="nav-buttons">
+            <button id="btn-ai">AI对话</button>
+            <button id="btn-file" class="active">文件管理</button>
+        </div>
+
+        <h1>文件管理</h1>
+        <ul id="fileList"></ul>
+    </div>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频播放</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background: white;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        video {
+            width: 100%;
+            border-radius: 5px;
+        }
+        .back-button {
+            background: #007BFF;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            border: none;
+        }
+        .back-button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-button" onclick="goBack()">返回文件管理</button>
+        <h2>视频播放</h2>
+        <video id="videoPlayer" controls>
+            <source id="videoSource" src="" type="video/mp4">
+            您的浏览器不支持视频播放。
+        </video>
+    </div>
+
+    <script>
+        // 从 URL 获取参数
+        const urlParams = new URLSearchParams(window.location.search);
+        const filename = urlParams.get("filename"); // 确保后端传递的是 `file_name`
+        const token = urlParams.get("token"); // 获取 token 方便后续使用
+        const userId = "{{ user_id }}";  // 由 FastAPI 传递
+
+        console.log("用户ID:", userId);
+        console.log("文件名:", filename);
+
+        // 返回按钮跳转
+        function goBack() {
+            window.location.href = `/template/file_manager?token=${token}`;
+        }
+
+        // 设置视频源并加载视频
+        if (filename) {
+            document.getElementById("videoSource").src = `/file/video/stream?filename=${filename}&user_id=${userId}`;
+            document.getElementById("videoPlayer").load();
+        } else {
+            console.error("文件名未正确获取");
+        }
+    </script>
+</body>
+</html>

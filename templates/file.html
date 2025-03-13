@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件上传</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 350px;
+        }
+        h2 {
+            color: #333;
+        }
+        p {
+            color: #666;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        .custom-file-upload {
+            display: inline-block;
+            padding: 10px 20px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .custom-file-upload:hover {
+            background-color: #0056b3;
+        }
+        button {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #28a745;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #file_manager_btn {
+            background-color: #17a2b8;
+        }
+        #file_manager_btn:hover {
+            background-color: #138496;
+        }
+       
+        #logout_btn {
+            background-color: #dc3545;
+            margin-top: 20px;
+        }
+        #logout_btn:hover {
+            background-color: #c82333;
+        }
+        .progress-bar {
+            width: 0;
+            height: 8px;
+            background-color: #28a745;
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: width 0.3s;
+        }
+        h3 {
+            color: #333;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>文件上传</h2>
+        <p>当前用户: <strong id="user_id_display"></strong></p>
+        
+        <form id="upload-form" enctype="multipart/form-data">
+            <label for="file-input" class="custom-file-upload">选择文件</label>
+            <input name="file" type="file" id="file-input" multiple>
+            <input type="hidden" name="user_id" id="user_id_input">
+            <button type="submit">上传文件</button>
+        </form>
+        
+        <div class="progress-bar" id="progress_bar"></div>
+        <h3 id="upload_result"></h3>
+
+        <button id="file_manager_btn">文件管理</button>
+         <!-- 退出登录按钮 -->
+         <button id="logout_btn">退出登录</button>
+    </div>
+
+    <script>
+        const userId = "{{ user_id }}";
+        document.getElementById("user_id_display").innerText = userId;
+        document.getElementById("user_id_input").value = userId;
+
+        // 获取 URL 参数中的 token
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("token");
+
+
+        document.getElementById("upload-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const formData = new FormData();
+            const files = document.getElementById("file-input").files;
+            const userId = document.getElementById("user_id_input").value;
+
+            if (files.length === 0) {
+                alert("请选择文件！");
+                return;
+            }
+
+            for (let i = 0; i < files.length; i++) {
+                formData.append("files", files[i]);
+            }
+            formData.append("user_id", userId);
+
+            const uploadResult = document.getElementById("upload_result");
+            const progressBar = document.getElementById("progress_bar");
+            progressBar.style.width = "0%";
+
+            fetch("/file/upload/file", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "Accept": "application/json"
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data["上传成功"]) {
+                    uploadResult.innerText = `文件上传成功: ${data["上传成功"].join(", ")}`;
+                    progressBar.style.width = "100%";
+                } else if (data["错误"]) {
+                    uploadResult.innerText = `错误: ${data["错误"]}`;
+                } else {
+                    uploadResult.innerText = "上传失败";
+                }
+            })
+            .catch(error => {
+                uploadResult.innerText = "上传出错: " + error;
+            });
+        });
+
+        document.getElementById("file_manager_btn").addEventListener("click", function() {
+            if (token) {
+                window.location.href = `/template/file_manager?token=${token}`;
+            } else {
+                alert("用户未登录或 token 失效，请重新登录！");
+            }
+        });
+        // 退出登录功能
+        document.getElementById("logout_btn").addEventListener("click", function() {
+            fetch('/user/logout', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    token: token  
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                if (data) {  
+                    // 清除本地存储的 token
+                    localStorage.removeItem("token");  
+                    sessionStorage.removeItem("token"); 
+    
+                    window.location.href = "/template/index"; 
+                } else {
+                    alert("退出登录失败：" + data.message);
+                }
+            })
+            .catch(error => {
+                console.error("退出登录出错:", error);
+                alert("退出登录出错，请稍后再试！");
+            });
+        });
+        
+        
+
+
+        
+    </script>
+</body>
+</html>
